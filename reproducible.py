@@ -50,14 +50,17 @@ class Reproducible(object):
         self.steps = []
         self.directory = setup_files(model_name)
         self.data = dict()
+        # If this becomes true, no more data loading will be performed.
+        self.repeat_all = False
 
     def add_step(self, step):
         self.steps.append(step)
 
     def run(self):
         for s in self.steps:
-            if self.pre_step(s):
+            if not self.repeat_all and self.pre_step(s):
                 continue
+            self.repeat_all = True
             s(self.data)
             self.post_step(s)
 

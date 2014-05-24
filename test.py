@@ -1,7 +1,8 @@
 import os
 import shutil
 import tarfile
-from reproducible import Reproducible, setup_files, compare_steps
+from reproducible.reproducible import \
+        Reproducible, setup_files, compare_steps
 
 def test_initial():
     model = Reproducible("test1")
@@ -66,12 +67,12 @@ def test_saved_step():
 def test_new_fnc():
     def set_data(data):
         data['data'] = "hello"
-    model = Reproducible("test3")
+    model = Reproducible("test5")
     model.add_step(set_data)
     model.run()
     def set_data(data):
         data['data'] = "goodbye"
-    model = Reproducible("test3")
+    model = Reproducible("test5")
     model.add_step(set_data)
     model.run()
     assert(model.data['data'] == "goodbye")
@@ -85,12 +86,12 @@ def test_multiple_steps():
         set_data.idx += 1
     set_data.idx = 0
 
-    model = Reproducible("test3")
+    model = Reproducible("test4")
     model.add_step(set_data)
     model.run()
     def set_more_data(data):
         data['stuff'] = "additional"
-    model = Reproducible("test3")
+    model = Reproducible("test4")
     model.add_step(set_data)
     model.add_step(set_more_data)
     model.run()

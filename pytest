@@ -1,2 +1,3 @@
 #!/bin/bash
+rm -r data/test*
 py.test -m "not slow" -s --tb=short $@

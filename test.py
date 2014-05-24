@@ -89,6 +89,7 @@ def test_multiple_steps():
     model = Reproducible("test4")
     model.add_step(set_data)
     model.run()
+    assert(model.data['data'] == "hello")
     def set_more_data(data):
         data['stuff'] = "additional"
     model = Reproducible("test4")
@@ -97,3 +98,15 @@ def test_multiple_steps():
     model.run()
     assert(model.data['data'] == "hello")
     assert(model.data['stuff'] == "additional")
+
+def test_always():
+    def set_data(data):
+        data['data'] = set_data.idx
+        set_data.idx += 1
+    set_data.idx = 0
+    model = Reproducible("test_always")
+    model.add_step(set_data, always = True)
+    model.run()
+    model.run()
+    model.run()
+    assert(model.data['data'] == 2)

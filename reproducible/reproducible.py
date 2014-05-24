@@ -53,12 +53,12 @@ class Reproducible(object):
         # If this becomes true, no more data loading will be performed.
         self.repeat_all = False
 
-    def add_step(self, step):
-        self.steps.append(step)
+    def add_step(self, step, always = False):
+        self.steps.append((step, always))
 
     def run(self):
-        for s in self.steps:
-            if not self.repeat_all and self.pre_step(s):
+        for (s, always) in self.steps:
+            if not always and not self.repeat_all and self.pre_step(s):
                 continue
             self.repeat_all = True
             s(self.data)

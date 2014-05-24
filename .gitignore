@@ -1,0 +1,10 @@
+data
+build
+*.egg-info
+*.pyc
+*.swp
+*.swo
+*nohup.out
+.vagrant
+*.so
+*.html

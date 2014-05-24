@@ -1,7 +1,8 @@
 import os
 import time
 import errno
-import pickle
+# import pickle
+import dill as pickle
 import inspect
 import tarfile
 import tempfile

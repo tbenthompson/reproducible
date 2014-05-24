@@ -49,7 +49,7 @@ def assemble_system(data):
     data['f'] = f
 
 def solve_system(data):
-    print "Solving system"
+    print "Solving system!"
     y = np.zeros(data['n'] + 1)
     y[1:] = solve(data['A'][1:, 1:], data['f'][1:])
     data['y'] = y

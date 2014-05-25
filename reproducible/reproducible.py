@@ -2,6 +2,7 @@ import os
 import time
 import errno
 # import pickle
+import shutil
 import dill as pickle
 import inspect
 import tarfile
@@ -14,14 +15,27 @@ cfg['data_dir'] = 'data'
 cfg['fnc_filename'] = 'fnctext.txt'
 cfg['data_filename'] = 'saveddata.pkl'
 
-def setup_files(model_name):
-    directory = cfg['data_dir'] + '/' + model_name
+def create_dir(directory):
     try:
         os.makedirs(directory)
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
+
+def setup_files(model_name):
+    directory = cfg['data_dir'] + '/' + model_name
+    create_dir(directory)
     return directory
+
+def find_highest_version(directory):
+    subdirs = os.listdir(directory)
+    if 'v0' not in subdirs:
+        return 0
+    for i in range(len(subdirs)):
+        if 'v' + str(i) in subdirs:
+            continue
+        return i - 1
+    return len(subdirs) - 1
 
 def write_string_to_tar(filename, s, tar_f):
     string = StringIO.StringIO()
@@ -46,28 +60,61 @@ def compare_steps(s, tar_f):
 A class for organizing repeatable, reproducible model runs.
 """
 class Reproducible(object):
-    def __init__(self, model_name):
+    def __init__(self, model_name, pipfreeze = False):
+        self.pipfreeze = pipfreeze
         self.model_name = model_name
         self.steps = []
+
         self.directory = setup_files(model_name)
+        self.version = find_highest_version(self.directory)
+        self.full_save_path = self.directory + '/v' + str(self.version)
+
         self.data = dict()
+
         # If this becomes true, no more data loading will be performed.
         self.repeat_all = False
+        if not os.path.exists(self.full_save_path):
+            self.new_model()
 
     def add_step(self, step, always = False):
-        self.steps.append((step, always))
+        new_step = dict()
+        new_step['fnc'] = step
+        new_step['always'] = always
+        self.steps.append(new_step)
+
+    def new_model(self):
+        """ This handles the initialization case when version = 0 """
+        create_dir(self.full_save_path)
+        self.no_more_loading()
+
+    def begin_computing(self):
+        old_save_path = self.full_save_path
+        self.version += 1
+        self.full_save_path = self.directory + '/v' + str(self.version)
+        shutil.copytree(old_save_path, self.full_save_path)
+        self.no_more_loading()
+
+    def no_more_loading(self):
+        self.repeat_all = True
+        # pip freeze is slow so we make it a config option
+        if self.pipfreeze:
+            requirements_file = self.full_save_path + '/requirements.txt'
+            os.system('pip freeze > ' + requirements_file)
 
     def run(self):
-        for (s, always) in self.steps:
+        for step in self.steps:
+            always = step['always']
+            s = step['fnc']
             if not always and not self.repeat_all and self.pre_step(s):
                 continue
-            self.repeat_all = True
+            if not self.repeat_all:
+                self.begin_computing()
             s(self.data)
             self.post_step(s)
 
     def _get_tar_filename(self, step):
         step_name = step.__name__
-        return self.directory + '/' + step_name + '.tar'
+        return self.full_save_path + '/' + step_name + '.tar'
 
     def pre_step(self, step):
         file_name = self._get_tar_filename(step)

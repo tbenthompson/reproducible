@@ -102,19 +102,34 @@ class Reproducible(object):
             os.system('pip freeze > ' + requirements_file)
 
     def run(self):
+        prev_step = None
         for step in self.steps:
             always = step['always']
             s = step['fnc']
             if not always and not self.repeat_all and self.pre_step(s):
-                continue
-            if not self.repeat_all:
-                self.begin_computing()
-            s(self.data)
-            self.post_step(s)
+                pass
+            else:
+                if not self.repeat_all:
+                    self.begin_computing()
+                if prev_step:
+                    self.load_data(prev_step['fnc'])
+                s(self.data)
+                self.post_step(s)
+            prev_step = step
+        if not self.repeat_all:
+            self.load_data(prev_step['fnc'])
 
     def _get_tar_filename(self, step):
         step_name = step.__name__
         return self.full_save_path + '/' + step_name + '.tar'
+
+    def load_data(self, step):
+        file_name = self._get_tar_filename(step)
+        if not os.path.exists(file_name):
+            return
+        with tarfile.open(file_name, 'r') as tar_f:
+            data_file = tar_f.extractfile(cfg['data_filename']).read()
+            self.data = pickle.loads(data_file)
 
     def pre_step(self, step):
         file_name = self._get_tar_filename(step)
@@ -124,8 +139,6 @@ class Reproducible(object):
             same_fnc = compare_steps(step, tar_f)
             if not same_fnc:
                 return False
-            data_file = tar_f.extractfile(cfg['data_filename']).read()
-            self.data = pickle.loads(data_file)
             return True
 
     def post_step(self, step):

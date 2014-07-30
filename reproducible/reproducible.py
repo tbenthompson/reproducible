@@ -76,10 +76,11 @@ class Reproducible(object):
         if not os.path.exists(self.full_save_path):
             self.new_model()
 
-    def add_step(self, step, always = False):
+    def add_step(self, step, always = False, save = True):
         new_step = dict()
         new_step['fnc'] = step
         new_step['always'] = always
+        new_step['save'] = save
         self.steps.append(new_step)
 
     def new_model(self):
@@ -114,7 +115,7 @@ class Reproducible(object):
                 if prev_step:
                     self.load_data(prev_step['fnc'])
                 s(self.data)
-                self.post_step(s)
+                self.post_step(step)
             prev_step = step
         if not self.repeat_all:
             self.load_data(prev_step['fnc'])
@@ -142,8 +143,11 @@ class Reproducible(object):
             return True
 
     def post_step(self, step):
-        file_name = self._get_tar_filename(step)
-        function_text = inspect.getsourcelines(step)
+        fnc = step['fnc']
+        if step['save'] is False:
+            return
+        file_name = self._get_tar_filename(fnc)
+        function_text = inspect.getsourcelines(fnc)
         data_dump = pickle.dumps(self.data)
         with tarfile.open(file_name, 'w') as f:
             write_string_to_tar(cfg['fnc_filename'], function_text, f)
